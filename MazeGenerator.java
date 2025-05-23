@@ -1,94 +1,102 @@
 import java.util.Random;
-import java.util.Stack;
 
 public class MazeGenerator {
-    private final int rows;
-    private final int cols;
+    private final int rows, cols;
     private final int[][] maze;
-    private final boolean[][] visited;
     private final Random rand = new Random();
-
     private static final int WALL = 1;
     private static final int PATH = 0;
 
-    // 미로 크기를 지정할 수 있도록 수정
+    private int playerRow = 1, playerCol = 1;  // 플레이어 시작 위치
+    private int endRow, endCol;
+
     public MazeGenerator(int rows, int cols) {
-        this.rows = rows % 2 == 0 ? rows + 1 : rows; // 짝수면 홀수로 변환 (미로 구조 유지를 위해)
+        this.rows = rows % 2 == 0 ? rows + 1 : rows;
         this.cols = cols % 2 == 0 ? cols + 1 : cols;
         maze = new int[this.rows][this.cols];
-        visited = new boolean[this.rows][this.cols];
         initializeMaze();
-        generateMaze(1, 1); // 항상 내부에서 시작
+        generateMaze(1, 1);
+        setExit(); // 도착점 설정
     }
 
     private void initializeMaze() {
-        for (int r = 0; r < rows; r++)
-            for (int c = 0; c < cols; c++)
-                maze[r][c] = WALL;
+        for (int i = 0; i < rows; i++)
+            for (int j = 0; j < cols; j++)
+                maze[i][j] = WALL;
     }
 
-    private void generateMaze(int startRow, int startCol) {
-        Stack<int[]> stack = new Stack<>();
-        stack.push(new int[]{startRow, startCol});
-        maze[startRow][startCol] = PATH;
-        visited[startRow][startCol] = true;
+    private void generateMaze(int r, int c) {
+        maze[r][c] = PATH;
+        int[][] dirs = {{-2, 0}, {2, 0}, {0, -2}, {0, 2}};
+        shuffle(dirs);
 
-        int[][] directions = {
-            {-2, 0}, {2, 0}, {0, -2}, {0, 2}
-        };
-
-        while (!stack.isEmpty()) {
-            int[] current = stack.peek();
-            int row = current[0];
-            int col = current[1];
-
-            boolean moved = false;
-            shuffleArray(directions);
-
-            for (int[] dir : directions) {
-                int newRow = row + dir[0];
-                int newCol = col + dir[1];
-
-                if (isValid(newRow, newCol)) {
-                    maze[newRow][newCol] = PATH;
-                    maze[(row + newRow) / 2][(col + newCol) / 2] = PATH; // 벽 제거
-                    visited[newRow][newCol] = true;
-                    stack.push(new int[]{newRow, newCol});
-                    moved = true;
-                    break;
-                }
-            }
-
-            if (!moved) {
-                stack.pop();
+        for (int[] d : dirs) {
+            int nr = r + d[0], nc = c + d[1];
+            if (inBounds(nr, nc) && maze[nr][nc] == WALL) {
+                maze[(r + nr) / 2][(c + nc) / 2] = PATH;
+                generateMaze(nr, nc);
             }
         }
     }
 
-    private boolean isValid(int r, int c) {
-        return r > 0 && r < rows - 1 && c > 0 && c < cols - 1 && !visited[r][c];
-    }
-
-    // 방향 배열을 무작위로 섞기
-    private void shuffleArray(int[][] array) {
-        for (int i = array.length - 1; i > 0; i--) {
-            int index = rand.nextInt(i + 1);
-            int[] temp = array[index];
-            array[index] = array[i];
-            array[i] = temp;
+    private void setExit() {
+        for (int i = rows - 2; i > 0; i--) {
+            for (int j = cols - 2; j > 0; j--) {
+                if (maze[i][j] == PATH) {
+                    endRow = i;
+                    endCol = j;
+                    return;
+                }
+            }
         }
     }
 
     public void printMaze() {
-        for (int[] row : maze) {
-            for (int cell : row) {
-                System.out.print(cell == WALL ? "█" : " "); // 벽 가시성 개선
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                if (i == playerRow && j == playerCol)
+                    System.out.print("@"); // 플레이어 위치
+                else if (i == endRow && j == endCol)
+                    System.out.print("E"); // 도착점
+                else
+                    System.out.print(maze[i][j] == WALL ? "█" : " ");
             }
             System.out.println();
         }
     }
 
-    public int[][] getMaze() {
-        return maze;
+    public boolean movePlayer(char direction) {
+        int newRow = playerRow, newCol = playerCol;
+        switch (Character.toUpperCase(direction)) {
+            case 'W': newRow--; break;
+            case 'S': newRow++; break;
+            case 'A': newCol--; break;
+            case 'D': newCol++; break;
+            default: return false;
+        }
+
+        if (inBounds(newRow, newCol) && maze[newRow][newCol] == PATH) {
+            playerRow = newRow;
+            playerCol = newCol;
+        }
+
+        return hasReachedGoal(); // 도착 여부 반환
+    }
+
+    private boolean inBounds(int r, int c) {
+        return r >= 0 && r < rows && c >= 0 && c < cols;
+    }
+
+    private void shuffle(int[][] arr) {
+        for (int i = arr.length - 1; i > 0; i--) {
+            int j = rand.nextInt(i + 1);
+            int[] tmp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = tmp;
+        }
+    }
+
+    public boolean hasReachedGoal() {
+        return playerRow == endRow && playerCol == endCol;
     }
 }

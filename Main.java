@@ -1,9 +1,26 @@
+import java.util.Scanner;
+
 public class Main {
     public static void main(String[] args) {
-        // 미로 생성기 인스턴스 생성 (크기 지정 가능)
-        MazeGenerator mg = new MazeGenerator(31, 31); // 홀수 크기 권장
+        MazeGenerator maze = new MazeGenerator(21, 41); // 미로 크기 지정
+        Scanner scanner = new Scanner(System.in);
 
-        // 콘솔에 미로 출력 (벽은 █, 길은 공백으로 가시성 향상됨)
-        mg.printMaze();
+        System.out.println("=== 미로 게임 시작! W/A/S/D 로 이동하세요 ===");
+
+        while (true) {
+            maze.printMaze();  // 미로 출력
+            System.out.print("입력 > ");
+            String input = scanner.nextLine();
+            if (input.isEmpty()) continue;
+
+            char command = input.charAt(0);
+            boolean finished = maze.movePlayer(command); // 입력 처리
+
+            if (finished) {
+                maze.printMaze();
+                System.out.println("도착했습니다! 게임 종료.");
+                break;
+            }
+        }
     }
 }
