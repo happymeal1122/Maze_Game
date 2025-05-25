@@ -102,10 +102,20 @@ public class MazeGame extends JPanel implements KeyListener {
             playerRow = newRow;
             playerCol = newCol;
             repaint();
+            
+            // 도착 검사 추가
+            if (playerRow == endRow && playerCol == endCol) {
+                JOptionPane.showMessageDialog(this, "도착했습니다!", "성공", JOptionPane.INFORMATION_MESSAGE);
+                System.exit(0); // 게임 종료
+            }
         }
     }
-
-    @Override public void keyReleased(KeyEvent e) {}
+    @Override public void keyReleased(KeyEvent e) {
+    	if (playerRow == endRow && playerCol == endCol) {
+    	    JOptionPane.showMessageDialog(this, "도착했습니다!", "성공", JOptionPane.INFORMATION_MESSAGE);
+    	    System.exit(0); // 또는 게임 재시작 로직으로 교체 가능
+    	}
+    }
     @Override public void keyTyped(KeyEvent e) {}
 
     public static void main(String[] args) {
@@ -115,5 +125,6 @@ public class MazeGame extends JPanel implements KeyListener {
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+        
     }
 }
