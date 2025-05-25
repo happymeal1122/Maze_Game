@@ -19,6 +19,7 @@ public class Main {
             if (finished) {
                 maze.printMaze();
                 System.out.println("도착했습니다! 게임 종료.");
+                System.out.println("병합 표시용 코드");
                 break;
             }
         }
