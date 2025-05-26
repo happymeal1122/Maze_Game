@@ -1,3 +1,4 @@
+
 import java.util.Random;
 
 public class MazeGenerator {
@@ -49,6 +50,18 @@ public class MazeGenerator {
                 }
             }
         }
+    }
+
+    public int[][] getMaze() {
+        return maze;
+    }
+
+    public int getEndRow() {
+        return endRow;
+    }
+
+    public int getEndCol() {
+        return endCol;
     }
 
     public void printMaze() {

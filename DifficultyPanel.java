@@ -27,7 +27,13 @@ public class DifficultyPanel extends JPanel {
         frame.dispose(); // 난이도 선택 창 닫기
         JFrame gameFrame = new JFrame("Maze Game - " + rows + "x" + cols);
         gameFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        gameFrame.setContentPane(new MazeGame(rows, cols));
+        MazeGenerator generator = new MazeGenerator(rows, cols);
+        int[][] maze = generator.getMaze();
+        int endRow = generator.getEndRow();
+        int endCol = generator.getEndCol();
+
+        gameFrame.setContentPane(new MazeGame(maze, endRow, endCol));
+
         gameFrame.pack();
         gameFrame.setLocationRelativeTo(null);
         gameFrame.setVisible(true);
