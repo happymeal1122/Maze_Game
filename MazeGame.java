@@ -5,18 +5,18 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 public class MazeGame extends JPanel {
-    private final int[][] maze; // 실제 게임 중 사용하는 미로
-    private final int[][] originalMaze; // MazeGenerator로부터 복사된 원본 미로
+    private final int[][] maze;
+    private final int[][] originalMaze;
     private int playerRow = 1, playerCol = 1;
     private Direction playerDirection = Direction.DOWN;
     private final int endRow, endCol;
     private final int tileSize = 640;
 
-    private boolean showMiniMap = false; // 미니맵 표시 여부를 결정하는 플래그
+    private boolean showMiniMap = false;
 
     public MazeGame(int[][] maze, int endRow, int endCol) {
         this.maze = maze;
-        this.originalMaze = copyMaze(maze); // 미니맵 출력용 원본 미로 복사 저장
+        this.originalMaze = copyMaze(maze);
         this.endRow = endRow;
         this.endCol = endCol;
 
@@ -32,7 +32,7 @@ public class MazeGame extends JPanel {
                     case KeyEvent.VK_S -> moveBackward();
                     case KeyEvent.VK_A -> turnLeft();
                     case KeyEvent.VK_D -> turnRight();
-                    case KeyEvent.VK_M -> toggleMiniMap(); // m 키 입력 시 미니맵 상태 토글
+                    case KeyEvent.VK_M -> toggleMiniMap();
                 }
                 repaint();
                 checkGoal();
@@ -49,7 +49,7 @@ public class MazeGame extends JPanel {
     }
 
     private void toggleMiniMap() {
-        showMiniMap = !showMiniMap; // 미니맵 표시 상태를 전환
+        showMiniMap = !showMiniMap;
     }
 
     private void moveForward() {
@@ -93,46 +93,85 @@ public class MazeGame extends JPanel {
         super.paintComponent(g);
 
         if (showMiniMap) {
-            drawMiniMap(g); // 미니맵 출력
+            drawMiniMap(g);
         } else {
-            drawFirstPersonView(g); // 1인칭 시점 이미지 출력
+            drawFirstPersonView(g);
         }
     }
 
     private void drawFirstPersonView(Graphics g) {
-        MazeAnalyzer analyzer = new MazeAnalyzer(maze);
-        String structure = analyzer.getStructureType(playerRow, playerCol); // 현재 위치 기준 분석
+        int frontRow = playerRow + playerDirection.dy;
+        int frontCol = playerCol + playerDirection.dx;
+
+        String structure;
+        if (!isInBounds(frontRow, frontCol) || maze[frontRow][frontCol] == 1) {
+            structure = "wall";
+        } else {
+            int backRow = frontRow - playerDirection.dy;
+            int backCol = frontCol - playerDirection.dx;
+            int leftRow = frontRow + playerDirection.left().dy;
+            int leftCol = frontCol + playerDirection.left().dx;
+            int rightRow = frontRow + playerDirection.right().dy;
+            int rightCol = frontCol + playerDirection.right().dx;
+
+            boolean front = isPath(frontRow + playerDirection.dy, frontCol + playerDirection.dx);
+            boolean back = isPath(backRow, backCol);
+            boolean left = isPath(leftRow, leftCol);
+            boolean right = isPath(rightRow, rightCol);
+
+            if (!front && !left && !right && back) structure = "deadend";
+            else if (!front && left && !right && back) structure = "left";
+            else if (!front && !left && right && back) structure = "right";
+            else if (front && back && !left && !right) structure = "up";
+            else if (front && back && left && !right) structure = "t_left";
+            else if (front && back && right && !left) structure = "t_right";
+            else if (back && left && right && !front) structure = "T";
+            else if (front && back && left && right) structure = "+";
+            else structure = "up";
+        }
+
         Image img = ImageUtil.getImage(structure + ".png");
-        g.drawImage(img, 0, 0, tileSize, tileSize, null);
+
+        if (img == null || img.getWidth(null) == -1) {
+            System.out.println("⚠️ " + structure + ".png 로딩 실패 → wall.png로 대체");
+            img = ImageUtil.getImage("wall.png");
+        }
+
+        if (img == null || img.getWidth(null) == -1) {
+            System.out.println("❌ wall.png 로딩 실패 → 검은 화면 출력");
+            g.setColor(Color.BLACK);
+            g.fillRect(0, 0, tileSize, tileSize);
+        } else {
+            g.drawImage(img, 0, 0, tileSize, tileSize, null);
+        }
+    }
+
+    private boolean isInBounds(int r, int c) {
+        return r >= 0 && c >= 0 && r < maze.length && c < maze[0].length;
     }
 
     private void drawMiniMap(Graphics g) {
         int mapCellSize = Math.min(tileSize / originalMaze.length, tileSize / originalMaze[0].length);
         for (int r = 0; r < originalMaze.length; r++) {
             for (int c = 0; c < originalMaze[0].length; c++) {
-                if (originalMaze[r][c] == 1) {
-                    g.setColor(Color.DARK_GRAY); // 벽
-                } else {
-                    g.setColor(Color.WHITE); // 길
-                }
+                g.setColor(originalMaze[r][c] == 1 ? Color.DARK_GRAY : Color.WHITE);
                 g.fillRect(c * mapCellSize, r * mapCellSize, mapCellSize, mapCellSize);
             }
         }
 
-        g.setColor(Color.BLUE); // 도착 지점 표시
+        g.setColor(Color.BLUE);
         g.fillRect(endCol * mapCellSize, endRow * mapCellSize, mapCellSize, mapCellSize);
 
-        // 플레이어 방향 삼각형 표시
         Graphics2D g2 = (Graphics2D) g;
         g2.setColor(Color.RED);
         int cx = playerCol * mapCellSize + mapCellSize / 2;
         int cy = playerRow * mapCellSize + mapCellSize / 2;
-        int size = (int)(mapCellSize * 0.9); // 삼각형 크기 확대
+        int size = (int)(mapCellSize * 0.9);
 
         Polygon triangle = new Polygon();
-        triangle.addPoint(0, -size / 2); // 꼭짓점
-        triangle.addPoint(-size / 3, size / 3); // 좌하단
-        triangle.addPoint(size / 3, size / 3); // 우하단
+        triangle.addPoint(0, -size / 2);
+        triangle.addPoint(-size / 3, size / 3);
+        triangle.addPoint(size / 3, size / 3);
 
         double angle = switch (playerDirection) {
             case UP -> 0;
@@ -150,10 +189,10 @@ public class MazeGame extends JPanel {
 }
 
 enum Direction {
-    UP( -1,  0),
-    RIGHT( 0,  1),
-    DOWN( 1,  0),
-    LEFT( 0, -1);
+    UP(-1, 0),
+    RIGHT(0, 1),
+    DOWN(1, 0),
+    LEFT(0, -1);
 
     public final int dy, dx;
     Direction(int dy, int dx) {
